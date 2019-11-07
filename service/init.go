@@ -24,13 +24,7 @@ func Init(name string) {
 
 	CommandLine.Parse(os.Args[1:])
 
-	var linkRule string
-
-	if *flagLinkRule == "" {
-		linkRule = *flagSvcGroup
-	} else {
-		linkRule = *flagLinkRule
-	}
+	LinkRules = ParseMatchRule(getLinkRule())
 
 	// 设置文件日志
 	if *flagLogFile != "" {
@@ -53,25 +47,6 @@ func Init(name string) {
 
 		}
 	}
-
-	workdir, _ := os.Getwd()
-	log.Infof("Execuable: %s", os.Args[0])
-	log.Infof("WorkDir: %s", workdir)
-	log.Infof("ProcName: '%s'", GetProcName())
-	log.Infof("PID: %d", os.Getpid())
-	log.Infof("Discovery: '%s'", *flagDiscoveryAddr)
-	log.Infof("LinkRule: '%s'", linkRule)
-	log.Infof("SvcGroup: '%s'", GetSvcGroup())
-	log.Infof("SvcIndex: %d", GetSvcIndex())
-	log.Infof("LANIP: '%s'", util.GetLocalIP())
-	log.Infof("WANIP: '%s'", GetWANIP())
-
-	LinkRules = ParseMatchRule(linkRule)
-
-	log.Debugf("Connecting to discovery '%s' ...", *flagDiscoveryAddr)
-	sdConfig := memsd.DefaultConfig()
-	sdConfig.Address = *flagDiscoveryAddr
-	discovery.Default = memsd.NewDiscovery(sdConfig)
 
 	// 彩色日志
 	if *flagLogColor {
@@ -97,12 +72,43 @@ func Init(name string) {
 	// 禁用指定消息名的消息日志
 	if *flagMuteMsgLog != "" {
 
-		if err, count := msglog.BlockMessageLog(*flagMuteMsgLog); err != nil {
-			log.Warnln("BlockMessageLog: ", err)
+		if err := msglog.SetMsgLogRule(*flagMuteMsgLog, msglog.MsgLogRule_BlackList); err != nil {
+			log.Errorln("SetMsgLogRule: ", err)
 		} else {
-			log.Infoln("BlockMessageLog:", count)
+			log.Infoln("SetMsgLogRule:", *flagMuteMsgLog)
 		}
 	}
+
+}
+
+func getLinkRule() string {
+	if *flagLinkRule == "" {
+		return *flagSvcGroup
+	} else {
+		return *flagLinkRule
+	}
+}
+
+func LogParameter() {
+	workdir, _ := os.Getwd()
+	log.Infof("Execuable: %s", os.Args[0])
+	log.Infof("WorkDir: %s", workdir)
+	log.Infof("ProcName: '%s'", GetProcName())
+	log.Infof("PID: %d", os.Getpid())
+	log.Infof("Discovery: '%s'", *flagDiscoveryAddr)
+	log.Infof("LinkRule: '%s'", getLinkRule())
+	log.Infof("SvcGroup: '%s'", GetSvcGroup())
+	log.Infof("SvcIndex: %d", GetSvcIndex())
+	log.Infof("LANIP: '%s'", util.GetLocalIP())
+	log.Infof("WANIP: '%s'", GetWANIP())
+}
+
+// 连接到服务发现, 建议在service.Init后, 以及服务器逻辑开始前调用
+func ConnectDiscovery() {
+	log.Debugf("Connecting to discovery '%s' ...", *flagDiscoveryAddr)
+	sdConfig := memsd.DefaultConfig()
+	sdConfig.Address = *flagDiscoveryAddr
+	discovery.Default = memsd.NewDiscovery(sdConfig)
 }
 
 func WaitExitSignal() {

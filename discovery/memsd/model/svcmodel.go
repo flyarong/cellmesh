@@ -16,6 +16,8 @@ var (
 
 	Listener cellnet.Peer
 	Debug    bool
+
+	Version = "0.1.0"
 )
 
 func IsServiceKey(rawkey string) bool {
@@ -34,7 +36,7 @@ func GetSvcIDByServiceKey(rawkey string) string {
 
 func init() {
 	IDGen.AddTimeComponent(8)
-	IDGen.AddSeqComponent(8)
+	IDGen.AddSeqComponent(8, 0)
 }
 
 func GetSessionToken(ses cellnet.Session) (token string) {
